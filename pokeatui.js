@@ -62,8 +62,13 @@
       $tools.onclick = ev => {
         switch (ev.target.value) {
           case 'mouse-coords': // Get the frame-relative coordinates of a mouse click
-            console.log('here')
             let $clickTrap = Object.assign(document.createElement('div'), { id: 'click-trap' })
+            Object.assign($clickTrap.style, {
+              top: $frame.offsetTop + 'px',
+              left: $frame.offsetLeft + 'px',
+              width: $frame.offsetWidth + 'px',
+              height: $frame.offsetHeight + 'px',
+            })
             $clickTrap.onclick = ev => {
               // We use clientX and clientY rather than screenX and screenY
               // because the latter are sensitive to the iframe's relative
@@ -71,10 +76,10 @@
               // the entire visible surface of the iframe, we can use the
               // cursor position within itself to be the same as cursor
               // position within the visible portion of the frame.
-              console.log(ev.clientX, ev.clientY)
+              console.log(ev.clientX - ev.target.offsetLeft, ev.clientY - ev.target.offsetTop)
               $clickTrap.remove()
             }
-            $frame.contentDocument.body.append($clickTrap)
+            document.body.append($clickTrap)
             break
         }
       }
