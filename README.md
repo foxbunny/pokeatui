@@ -144,7 +144,8 @@ HTML. You can deploy tests to the same server and run the tests in any
 environment.
 
 If you [disable cross origin checks](https://stackoverflow.com/questions/3102819/disable-same-origin-policy-in-chrome) 
-in your browser, you point the function to the dev server's URL, like so:
+in your browser, you point the function to any URL, like, say, the dev server's 
+URL.
 
 ```javascript
 // my-test.js
