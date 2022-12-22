@@ -293,6 +293,39 @@ iframe contents reload.
 
 This is useful for testing things like state persistence across reload, etc.
 
+Example:
+
+```javascript
+testPage('index.html')
+  .useCase('Title persists after refresh', (ui, done) => {
+    ui.clickElement('form field', 'Title')
+    ui.typeIntoFocusedField('Temporary title', thenRefresh)
+    function thenRefresh() {
+      ui.refresh(thenCnfirm)
+    }
+    function thenConfirm() {
+      ui.fieldShouldHaveValue('Title', 'Temporary title')
+      done()
+    }
+  })
+```
+
+#### `scrollToTop()`
+
+Scroll the page to top. This method is synchronous and does not require a 
+callback. Scrolling is instant.
+
+Example:
+
+```javascript
+testPage('index.html')
+  .useCase('Scroll to top', (ui, done) => {
+    ui.clickElement('button', 'Add task')
+    ui.scrollToTop()
+    // ...
+  })
+```
+
 ### Mouse / pointer device actions
 
 #### `clickElement(elementType, label, position = 1)`

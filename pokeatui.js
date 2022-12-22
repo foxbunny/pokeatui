@@ -272,6 +272,9 @@
               cb()
             }
           },
+          scrollToTop() {
+            $frame.contentWindow.scrollTo(0, 0)
+          },
           // Mouse interactions
           clickElement(elementType, label, position = 1) {
             // Click an element with specified type and label. The third
