@@ -139,9 +139,12 @@ moment, though.
 
 ### Test page URL
 
-The first argument is the URL. If your application is in a HTML file, you
-can just point it to that file. If you are running your application with a
-dev server, then you would point the function to the dev server's URL, like so:
+The first argument is the URL. Usually this is a path to the application 
+HTML. You can deploy tests to the same server and run the tests in any  
+environment.
+
+If you [disable cross origin checks](https://stackoverflow.com/questions/3102819/disable-same-origin-policy-in-chrome) 
+in your browser, you point the function to the dev server's URL, like so:
 
 ```javascript
 // my-test.js
@@ -249,7 +252,7 @@ callback or the 'test code' as it's called internally. The test code takes
 two arguments, the UI tools and the `done` callback. The callback must be
 called to announce the end of the test.
 
-We'll discuss he UI tools in a separate section.
+We'll discuss the UI tools in a separate section.
 
 ## Running the cases
 
