@@ -508,3 +508,8 @@ Only elements that do not have the `hidden` attribute are selectable, but the
 elements that are just visually hidden are still selectable.
 
 Visually hidden labels are also considered when testing the label text.
+
+## License
+
+This code is licensed under the terms of the MIT license. See 
+[LICENSE.txt](LICENSE.txt) for the boring legal verbiage.
