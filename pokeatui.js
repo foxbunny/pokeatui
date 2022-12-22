@@ -185,9 +185,7 @@
         },
         NON_BUBBLING_EVENTS = ['focus', 'blur', 'load', 'unload', 'scroll'],
         dispatchEvent = ($, type, init = {}) => {
-          let
-            EventCtor = Event,
-            event
+          let EventCtor = Event
 
           // For some events, select a more appropriate constructor
           if (type.startsWith('key')) EventCtor = KeyboardEvent
@@ -260,6 +258,15 @@
           if ($) return $
           throw Error(`No element found at point (${x}, ${y})`)
         },
+        getScrollingAncestor = $start => {
+          let $ = $start
+          while ($) {
+            if ($.scrollHeight > $.offsetHeight) return $
+            $ = $.parentNode
+          }
+          return $frame.contentWindow
+        },
+        clamp = (min, x, max) => Math.min(Math.max(x, min), max),
         // This is a singleton shared by all tests related to the same iframe
         uiTools = {
           // In our tests, we use timers that are related to the frame, not the
@@ -346,7 +353,7 @@
             dispatchEvent($, 'mousedown', mouseInit)
             if ($.draggable) dispatchEvent($, 'dragstart', { ...mouseInit, dataTransfer })
           },
-          dragGrabbedElementBy(distX, distY, cb) {
+          dragGrabbedElementBy: function (distX, distY, cb) {
             // This is the dragging portion of drag & drop. We move by the
             // specified distances
 
@@ -355,10 +362,11 @@
 
             let
               $ = $frame.contentDocument.__grabbedElement,
+              $scrollingAncestor = getScrollingAncestor($),
               currX = $.__startX,
               currY = $.__startY,
-              vX = distX / 10, // total time 500ms / time per move 50ms
-              vY = distY / 10,
+              vX = distX / 50,
+              vY = distY / 50,
               $fakeCursor = Object.assign(document.createElement('div'), { id: 'fake-cursor' }),
               updateCursor = () => Object.assign($fakeCursor.style, {
                 left: `${currX + $frame.offsetLeft}px`,
@@ -388,14 +396,15 @@
                 cb()
                 return
               }
+
               if (!reachedX) {
-                // Only move if target coordinate is not reached
-                currX += vX
+                let overshoot = (currX + vX) - (currX = clamp(10, currX + vX, width - 10))
+                $scrollingAncestor.scrollBy(overshoot, 0)
                 distX -= vX
               }
               if (!reachedY) {
-                // Only move if target coordinate is not reached
-                currY += vY
+                let overshoot = (currY + vY) - (currY = clamp(10, currY + vY, height - 10))
+                $scrollingAncestor.scrollBy(0, overshoot)
                 distY -= vY
               }
 
@@ -403,19 +412,20 @@
 
               // Find any element under the cursor and trigger pointer events
               // on it.
-              let $elUnderCursor = getElementAtCoordinates(currX, currY)
-              let mouseInit = {
-                screenX: currX,
-                screenY: currY,
-                clientX: currX - $elUnderCursor.offsetLeft,
-                clientY: currY - $elUnderCursor.offsetTop,
-              }
+              let
+                $elUnderCursor = getElementAtCoordinates(currX, currY),
+                mouseInit = {
+                  screenX: currX,
+                  screenY: currY,
+                  clientX: currX - $elUnderCursor.offsetLeft,
+                  clientY: currY - $elUnderCursor.offsetTop,
+                }
               dispatchEvent($elUnderCursor, 'pointermove', mouseInit)
               dispatchEvent($elUnderCursor, 'mousemove', mouseInit)
               if ($.draggable) dispatchEvent($elUnderCursor, 'dragover', { ...mouseInit, dataTransfer: $.__dataTransfer })
 
               // Perform the next step in the move
-              this.setTimeout(move, 50)
+              this.setTimeout(move, 10)
             }())
           },
           dropGrabbedElement() {
