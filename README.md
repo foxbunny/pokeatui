@@ -29,6 +29,13 @@ I wanted a test runner that:
 I also just wanted to write one and see where it will go. This is not
 intended to be the "next big thing" in UI testing. It's just my pet project.
 
+## Example
+
+You will find an example of the tests written for the 
+[Vanilla TODO](https://github.com/foxbunny/vanilla-todo) demo project. The live
+version of the tests can be found 
+[here](https://foxbunny.github.io/vanilla-todo/tests.html).
+
 ## Roadmap
 
 - [x] Basic test organization and runner
