@@ -405,7 +405,7 @@ keystroke as well.
 
 When the typing is finished, the callback is invoked.
 
-This method will throw an exception iof there are no focused elements.
+This method will throw an exception if there are no focused elements.
 
 Example:
 
