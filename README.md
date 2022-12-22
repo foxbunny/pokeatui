@@ -36,6 +36,41 @@ You will find an example of the tests written for the
 version of the tests can be found 
 [here](https://foxbunny.github.io/vanilla-todo/tests.html).
 
+Excerpt from the tests:
+
+```javascript
+{
+  'use strict'
+
+  let { testDocument } = window.PokeAtUI
+
+  testDocument('index.html')
+    .useCase('Default UI', (ui, done) => {
+      ui.countElementsWithLabel('button', 'Add task', 1)
+      ui.noElementsMatch('form field', 'Task')
+      ui.noElementsMatch('button', 'Clear completed')
+      done()
+    })
+    .useCase('Add new task', (ui, done) => {
+      ui.clickElement('button', 'Add task')
+      ui.countElementsWithLabel('button', 'Clear completed', 1)
+      ui.countElementsWithLabel('form field', 'Task', 1)
+      ui.shouldHaveFocus('form field', 'Task')
+      done()
+    })
+    .useCase('Edit task text', (ui, done) => {
+      ui.clickElement('button', 'Add task')
+      ui.typeIntoFocusedField('My new task', thenCheckField)
+      function thenCheckField() {
+        ui.fieldShouldHaveValue('Task', 'My new task')
+        done()
+      }
+    })
+    // ...
+    .run()
+}
+```
+
 ## Roadmap
 
 - [x] Basic test organization and runner
