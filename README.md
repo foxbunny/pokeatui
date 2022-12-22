@@ -1,3 +1,5 @@
+![PokeAtUI logo](./pokeatui-logo.svg)
+
 # PokeAtUI - Simple in-browser UI test automation
 
 This is a test framework intended for automating UI testing in web browsers
