@@ -9,10 +9,10 @@
      * @param width - width of the test iframe in px
      * @param height - height of the test iframe in px
      * @param clearStorageBetweenTests - whether to clear localStorage between tests
-     * @param minTypingSpeed - minimum typing speed in ms per character (there is a 0~50ms jitter added to that)
+     * @param minTypingDelay - minimum typing speed in ms per character (there is a 0~50ms jitter added to that)
      * @param testTimeout - time in ms before a test automatically fails
      */
-    testDocument = (url, { width = 800, height = 600, clearStorageBetweenTests = true, minTypingSpeed = 50, testTimeout = 8000 } = {}) => {
+    testDocument = (url, { width = 800, height = 600, clearStorageBetweenTests = true, minTypingDelay = 50, testTimeout = 8000 } = {}) => {
       let
         // We write the CSS directly in JS so that we can keep the test
         // framework a single file
@@ -458,7 +458,7 @@
               $.value += chr
               keyPress($, CODES[chr] || { key: chr, shiftKey: false })
               dispatchEvent($, 'input')
-              this.setTimeout(typeNextChar, minTypingSpeed + Math.random() * 50)
+              this.setTimeout(typeNextChar, minTypingDelay + Math.random() * 50)
             }())
           },
           pasteIntoFocusedField(text) {

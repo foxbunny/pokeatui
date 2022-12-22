@@ -175,7 +175,7 @@ The following options are available:
   individual use cases. Completely separately from this, the storage is
   cleared once before the test suite runs, and restored once the page is closed.
   (Default: `true`)
-- `minTypingSpeed` - minimum interval in ms between two keystrokes when
+- `minTypingDelay` - minimum interval in ms between two keystrokes when
   simulating typing on the keyboard. This interval is further extended by a
   jitter of 0 to 50ms. (Default: `50`)
 - `testTimeout` - period in ms after which the test is considered as taking too
