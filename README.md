@@ -99,8 +99,8 @@ standard script tag.
   <head>
     <title>Test host</title>
     <!-- ... -->
-    <scrip defer src="pokeatui.js"></scrip>
-    <scrip defer src="my-test.js"></scrip>
+    <script defer src="pokeatui.js"></script>
+    <script defer src="my-test.js"></script>
   </head>
   <body><!-- You want this to be blank. --></body>
 </html>
