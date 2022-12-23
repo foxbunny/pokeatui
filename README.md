@@ -560,7 +560,31 @@ testPage('index.html')
   })
 ```
 
-## Element types
+## Notes
+
+Here are some notes about the concepts used in PokeAtUI.
+
+### Event simulation
+
+Since PokeAtUI is a JavaScript script, it is subject to the same limitations 
+as any application. It cannot move the mouse, it cannot trigger things that 
+your application cannot trigger (e.g., trigger keyboard navigation), and so 
+on. The actions triggered by the test code are therefore not going to match 
+the real browser behavior 100%. While some effort has been invested into 
+making PokeAtUI reasonably accurate, it's goal is not a faithful 
+reproduction of the real browser behavior. Rather, it aims to be accurate 
+enough to facilitate UI testing for most apps.
+
+Apps that will not be testable with PokeAtUI are apps that use various hacks.
+For example, if your app relies on the fact that preventing the default 
+behavior in `pointerdown` will prevent the `click` event but not `pointerup`,
+you will not be able to test using PokeAtUI as this library has a simplified 
+handling of default prevention that will cause `pointerup` to also be 
+prevented. However, if you are suppressing `mousedown` by preventing the 
+default in `touchstart`, which is a common practice to support both 
+touch and mouse, PokeAtUI will be able to replicate this.
+
+### Element types
 
 The following element types are supported by PokeAtUI:
 
@@ -568,7 +592,7 @@ The following element types are supported by PokeAtUI:
   `role="button"` attribute.
 - **form field** - inputs, select lists, textareas
 
-## Labels
+### Labels
 
 The label is a readable text that is associated with the element. This can be a
 partial match (the specified label ony needs to be contained in the on-screen
