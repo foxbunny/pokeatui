@@ -580,7 +580,7 @@
                 if (testDone) return // Ignore calls made after the test concluded
                 cleanUp()
                 testSuiteFailed = true // On first failure, we stop executing further tests
-                console.log(`FAIL: ${label}\n${error}`)
+                console.trace(`FAIL: ${label}\n${error}`)
                 runNextCase()
               }
 
