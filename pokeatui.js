@@ -2,6 +2,8 @@
   'use strict'
 
   let
+    HAS_TOUCH = 'ontouchstart' in document.documentElement,
+    HAS_DRAG = 'ondragover' in document.documentElement,
     /**
      * Create a test suite for a given URL
      *
@@ -184,8 +186,11 @@
           ' ': { key: ' ', code: 'Space', which: 32, shiftKey: false },
         },
         NON_BUBBLING_EVENTS = ['focus', 'blur', 'load', 'unload', 'scroll'],
+        NON_CANCELABLE_EVENTS = ['focus', 'blur', 'change', 'input', 'mousewheel', 'load', 'unload', 'scroll'],
         dispatchEvent = ($, type, init = {}) => {
-          let EventCtor = Event
+          let
+            EventCtor = Event,
+            ev
 
           // For some events, select a more appropriate constructor
           if (type.startsWith('key')) EventCtor = KeyboardEvent
@@ -193,10 +198,24 @@
           if (type.startsWith('mouse')) EventCtor = MouseEvent
           if (type.startsWith('drag')) EventCtor = DragEvent
 
-          // Add the 'bubbles' property automatically to any bubbling event
-          if (!NON_BUBBLING_EVENTS.includes(type)) init.bubbles = true
+          init.bubbles = !NON_BUBBLING_EVENTS.includes(type)
+          init.cancelable = !NON_CANCELABLE_EVENTS.includes(type)
 
-          $.dispatchEvent(new EventCtor(type, init))
+          if (type === 'dragenter') console.log(type, init, $)
+
+          ev = new EventCtor(type, init)
+          if (type === 'focus') $.focus()
+          $.dispatchEvent(ev)
+          return ev
+        },
+        dispatchEventChain = ($, events) => {
+          // A highly inaccurate way of approximating prevented defaults, but
+          // good enough in most cases.
+          for (let [type, init = {}] of events) {
+            let ev = dispatchEvent($, type, init)
+            if (NON_CANCELABLE_EVENTS.includes(type)) continue
+            if (ev.defaultPrevented) return ev
+          }
         },
         keyPress = ($, init) => {
           // Simulate the entire keypress event cycle
@@ -205,12 +224,22 @@
           dispatchEvent($, 'keypress', init)
         },
         blurElement = $ => {
+          if (!$) return
           // Remove focus from an element
           if ($.__originalValue && $.__originalValue !== $.value) {
             // Value of an input changed so we emit the change event
             dispatchEvent($, 'change')
             delete $.__originalValue
           }
+          dispatchEventChain($, HAS_TOUCH ? [
+            ['mouseleave'],
+            ['mouseout'],
+            ['blur'],
+          ] : [
+            ['pointerleave'],
+            ['mouseleave'],
+            ['blur'],
+          ])
           dispatchEvent($, 'blur')
         },
         generateElementsByLabel = function * (elementType, label) {
@@ -258,6 +287,11 @@
           if ($) return $
           throw Error(`No element found at point (${x}, ${y})`)
         },
+        getElementsAtCoordinates = (x, y) => {
+          let $$ = $frame.contentDocument.elementsFromPoint(x, y)
+          if ($$.length) return $$
+          throw Error(`No elements found at point (${x}, ${y})`)
+        },
         getScrollingAncestor = $start => {
           let $ = $start
           while ($) {
@@ -294,19 +328,54 @@
             // matching element.
             let
               $focusedElement = $frame.contentDocument.activeElement,
-              $ = getElementByLabel(elementType, label, position)
+              $ = getElementByLabel(elementType, label, position),
+              alreadyHasFocus = $focusedElement === $,
+              events
 
-            if ($focusedElement && $focusedElement !== $) blurElement($focusedElement)
+            if (!alreadyHasFocus) blurElement($focusedElement)
 
-            dispatchEvent($, 'pointerenter')
-            dispatchEvent($, 'mouseenter')
-            dispatchEvent($, 'pointerdown')
-            dispatchEvent($, 'mousedown')
-            $.focus() // Focus must be manually triggered here, *and* event dispatched after that
-            dispatchEvent($, 'focus')
-            dispatchEvent($, 'pointerup')
-            dispatchEvent($, 'mouseup')
-            dispatchEvent($, 'click')
+            if (HAS_TOUCH) {
+              events = [
+                ['pointerover'],
+                ['pointerenter'],
+                ['pointerdown'],
+                ['touchstart'],
+                ['pointerup'],
+                ['pointerout'],
+                ['pointerleave'],
+                ['touchend'],
+                ['mouseover'],
+                ['mouseenter'],
+                ['mousemove'],
+                ['mousedown'],
+              ]
+              if ($ !== $frame.contentDocument.activeElement) events.push(['focus'])
+              events.push(
+                ['mouseup'],
+                ['click'],
+              )
+            }
+            else {
+              events = alreadyHasFocus
+                ? []
+                : [
+                  ['pointerover'],
+                  ['pointerenter'],
+                  ['mouseover'],
+                  ['mouseenter'],
+                ]
+              events.push(
+                ['pointerdown'],
+                ['mousedown'],
+              )
+              if ($ !== $frame.contentDocument.activeElement) events.push(['focus'])
+              events.push(
+                ['pointerup'],
+                ['mouseup'],
+                ['click'],
+              )
+            }
+            dispatchEventChain($, events)
 
             // Some special cases where clicking also changes the value
             if ($.tagName === 'INPUT' && $.type === 'checkbox') {
@@ -347,11 +416,31 @@
             $.__startY = y
             $.__dataTransfer = dataTransfer
 
-            dispatchEvent($, 'pointerenter', mouseInit)
-            dispatchEvent($, 'mouseenter', mouseInit)
-            dispatchEvent($, 'pointerdown', mouseInit)
-            dispatchEvent($, 'mousedown', mouseInit)
-            if ($.draggable) dispatchEvent($, 'dragstart', { ...mouseInit, dataTransfer })
+            if ($frame.contentDocument.activeElement !== $) blurElement($frame.contentDocument.activeElement)
+
+            let events = HAS_TOUCH
+              ? [
+                ['pointerover', mouseInit],
+                ['pointerenter', mouseInit],
+                ['pointerdown', mouseInit],
+                ['touchstart', { touches: [mouseInit] }],
+                ['pointerup', mouseInit],
+                ['pointerout', mouseInit],
+                ['pointerleave', mouseInit],
+                ['touchend', { touches: [mouseInit] }],
+                ['mouseover', mouseInit],
+                ['mouseenter', mouseInit],
+                ['mousemove', mouseInit],
+                ['mousedown', mouseInit],
+              ]
+              : [
+                ['pointerenter', mouseInit],
+                ['pointerdown', mouseInit],
+                ['mouseenter', mouseInit],
+                ['mousedown', mouseInit],
+              ]
+            if ($.draggable && HAS_DRAG) events.push(['dragstart', { ...mouseInit, dataTransfer }])
+            dispatchEventChain($, events)
           },
           dragGrabbedElementBy: function (distX, distY, cb) {
             // This is the dragging portion of drag & drop. We move by the
@@ -362,6 +451,7 @@
 
             let
               $ = $frame.contentDocument.__grabbedElement,
+              dataTransfer = $.__dataTransfer,
               $scrollingAncestor = getScrollingAncestor($),
               currX = $.__startX,
               currY = $.__startY,
@@ -371,7 +461,8 @@
               updateCursor = () => Object.assign($fakeCursor.style, {
                 left: `${currX + $frame.offsetLeft}px`,
                 top: `${currY + $frame.offsetTop}px`,
-              })
+              }),
+              $$elsContainingCursor = Array.from(getElementsAtCoordinates(currX, currY))
 
             // Add a fake cursor to visualize the drag motion. We add the cursor
             // to the host document so it does not interfere with the document
@@ -413,16 +504,50 @@
               // Find any element under the cursor and trigger pointer events
               // on it.
               let
-                $elUnderCursor = getElementAtCoordinates(currX, currY),
+                $$elsUnderCursor = getElementsAtCoordinates(currX, currY),
                 mouseInit = {
                   screenX: currX,
                   screenY: currY,
-                  clientX: currX - $elUnderCursor.offsetLeft,
-                  clientY: currY - $elUnderCursor.offsetTop,
+                  clientX: currX - $$elsUnderCursor[0].offsetLeft,
+                  clientY: currY - $$elsUnderCursor[0].offsetTop,
                 }
-              dispatchEvent($elUnderCursor, 'pointermove', mouseInit)
-              dispatchEvent($elUnderCursor, 'mousemove', mouseInit)
-              if ($.draggable) dispatchEvent($elUnderCursor, 'dragover', { ...mouseInit, dataTransfer: $.__dataTransfer })
+
+              // touchmove only triggers on the ORIGINAL element, not the
+              // element over which the cursor is moving. However, point
+              // events *do* trigger on the element under the cursor.
+              if (HAS_TOUCH) dispatchEvent($, 'touchmove', { touches: [mouseInit] })
+
+              // Elements which the cursor has left
+              for (let $elWithCursor of $$elsContainingCursor) {
+                if ($$elsUnderCursor.includes($elWithCursor)) continue
+                dispatchEventChain($elWithCursor, [
+                  ['pointerleave', mouseInit],
+                  ['mouseleave', mouseInit],
+                  ['dragleave', { ...mouseInit, dataTransfer }],
+                ])
+              }
+
+              for (let $elUnderCursor of $$elsUnderCursor) {
+                if (!$$elsContainingCursor.includes($elUnderCursor)) {
+                  // Elements the cursor has entered
+                  let events = [
+                    ['pointerenter', mouseInit],
+                    ['mouseenter', mouseInit],
+                  ]
+                  if ($.draggable && HAS_DRAG) events.push(['dragenter', { ...mouseInit, dataTransfer }])
+                  dispatchEventChain($elUnderCursor, events)
+                }
+
+                let events = [
+                  ['pointermove', mouseInit],
+                  ['mousemove', mouseInit],
+                ]
+                if ($.draggable && HAS_DRAG) events.push(['dragover', { ...mouseInit, dataTransfer }])
+                dispatchEventChain($elUnderCursor, events)
+              }
+
+              // Update the list
+              $$elsContainingCursor = Array.from($$elsUnderCursor)
 
               // Perform the next step in the move
               this.setTimeout(move, 10)
@@ -438,6 +563,7 @@
               $ = $frame.contentDocument.__grabbedElement,
               lastX = $.__lastX,
               lastY = $.__lastY,
+              $elUnderCursor = document.elementFromPoint(lastX, lastY),
               dataTransfer = $.__dataTransfer,
               mouseInit = {
                 screenX: lastX,
@@ -454,9 +580,16 @@
             delete $.__lastY
             delete $.__dataTransfer
 
-            dispatchEvent($, 'pointerup', mouseInit)
-            dispatchEvent($, 'mouseup', mouseInit)
-            if ($.draggable) dispatchEvent($, 'dragend', { ...mouseInit, dataTransfer })
+            // touchend only triggers on the ORIGINAL element, not the
+            // element over which the cursor is moving. However, point
+            // events *do* trigger on the element under the cursor.
+            if (HAS_TOUCH) dispatchEvent($, 'touchend', { touches: [mouseInit] })
+            let events = [
+              ['pointerup', mouseInit],
+              ['mouseup', mouseInit],
+            ]
+            if ($.draggable && HAS_DRAG) events.push(['dragend', { ...mouseInit, dataTransfer }])
+            dispatchEventChain($elUnderCursor, events)
           },
           // Text-related actions
           typeIntoFocusedField(text, cb) {
@@ -613,6 +746,8 @@
         },
       }
     }
+
+  console.table({ HAS_DRAG, HAS_TOUCH })
 
   // This script is CommonJS-compatible
   if (typeof module === 'object' && typeof require === 'function') {

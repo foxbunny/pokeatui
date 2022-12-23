@@ -80,7 +80,7 @@ Excerpt from the tests:
 - [x] Add auto-scroll to drag & drop action
 - [ ] Add support for performing actions based on coordinates (e.g., clicking)
 - [ ] Handle elements that are visually hidden or have `pointer-events: none`
-- [ ] Touch support
+- [x] Touch support
 - [ ] Touch gesture support (pinch, twist, swipe)
 - [ ] Mocking HTTP
 - [ ] Storage fixtures
