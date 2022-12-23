@@ -78,6 +78,7 @@ Excerpt from the tests:
 - [x] Basic user interaction methods (clicking, typing, pasting text)
 - [x] Basic UI assertions (form value, presence/absence of elements)
 - [x] Add auto-scroll to drag & drop action
+- [ ] Allow interaction with label-less elements
 - [ ] Add support for performing actions based on coordinates (e.g., clicking)
 - [ ] Handle elements that are visually hidden or have `pointer-events: none`
 - [x] Touch support
