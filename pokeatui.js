@@ -201,8 +201,6 @@
           init.bubbles = !NON_BUBBLING_EVENTS.includes(type)
           init.cancelable = !NON_CANCELABLE_EVENTS.includes(type)
 
-          if (type === 'dragenter') console.log(type, init, $)
-
           ev = new EventCtor(type, init)
           if (type === 'focus') $.focus()
           $.dispatchEvent(ev)
@@ -481,8 +479,8 @@
                 // Reset the start coordinates in case we decide to drag again,
                 // and we also remember the last cursor position so that we can
                 // execute the drop with correct coordinates.
-                $.__startX = $.__lastX = distX
-                $.__sartY = $.__lastY = distY
+                $.__startX = $.__lastX = currX
+                $.__sartY = $.__lastY = currY
                 $fakeCursor.remove()
                 cb()
                 return
@@ -563,7 +561,7 @@
               $ = $frame.contentDocument.__grabbedElement,
               lastX = $.__lastX,
               lastY = $.__lastY,
-              $elUnderCursor = document.elementFromPoint(lastX, lastY),
+              $elUnderCursor = getElementAtCoordinates(lastX, lastY),
               dataTransfer = $.__dataTransfer,
               mouseInit = {
                 screenX: lastX,
