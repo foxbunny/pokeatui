@@ -598,15 +598,10 @@
                 $frame.contentWindow.onerror = failCurrentTest
                 uiTools.setTimeout(() => {
                   startTime = performance.now() // record start time
-                  try {
-                    // Test passes if the test code is able to call the second
-                    // callback before the failure callback is called due to
-                    // an exception, timeout, or some other reason.
-                    testCode(uiTools, passCurrentTest)
-                  }
-                  catch (e) {
-                    failCurrentTest(e)
-                  }
+                  // Test passes if the test code is able to call the second
+                  // callback before the failure callback is called due to
+                  // an exception, timeout, or some other reason.
+                  testCode(uiTools, passCurrentTest)
                 }, 1) // ~1ms wait in order for layout & paint to settle
               }
               // Set auto-fail timer. Any test that takes longer than
