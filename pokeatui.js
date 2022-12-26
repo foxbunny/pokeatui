@@ -14,7 +14,16 @@
      * @param minTypingDelay - minimum typing speed in ms per character (there is a 0~50ms jitter added to that)
      * @param testTimeout - time in ms before a test automatically fails
      */
-    testDocument = (url, { width = 800, height = 600, clearStorageBetweenTests = true, minTypingDelay = 50, testTimeout = 8000 } = {}) => {
+    testDocument = (
+      url,
+      {
+        width = 800,
+        height = 600,
+        clearStorageBetweenTests = true,
+        minTypingDelay = 50,
+        testTimeout = 8000
+      } = {}
+    ) => {
       let
         // We write the CSS directly in JS so that we can keep the test
         // framework a single file
@@ -240,7 +249,7 @@
           ])
           dispatchEvent($, 'blur')
         },
-        generateElementsByLabel = function * (elementType, label) {
+        generateElementsByLabel = function* (elementType, label) {
           // Yield elements that match the element type and label.
           //
           // Element type is an abstract concept unrelated to tag names. They
@@ -254,7 +263,8 @@
               break
             case 'form field':
               for (let $ of $frame.contentDocument.querySelectorAll(':is(input,select,textarea):not([hidden])')) {
-                let $label = $.id && $frame.contentDocument.querySelector(`label[for=${$.id}]:not([hidden])`) || $.closest('label:not([hidden])')
+                let $label = $.id && $frame.contentDocument.querySelector(`label[for=${$.id}]:not([hidden])`) ||
+                             $.closest('label:not([hidden])')
                 if (!$label) continue
                 if ($label.textContent.includes(label)) yield $
               }
@@ -371,6 +381,8 @@
                 ['pointerup'],
                 ['mouseup'],
                 ['click'],
+                ['pointermove'],
+                ['mousemove'],
               )
             }
             dispatchEventChain($, events)
@@ -396,7 +408,7 @@
               throw Error('There is already a grabbed element. You must drop it first.')
 
             let
-              $ = getElementAtCoordinates(x, y),
+              [$, ...$$otherElementsUnderCursor] = getElementsAtCoordinates(x, y),
               mouseInit = {
                 screenX: x,
                 screenY: y,
@@ -437,8 +449,15 @@
                 ['mouseenter', mouseInit],
                 ['mousedown', mouseInit],
               ]
-            if ($.draggable && HAS_DRAG) events.push(['dragstart', { ...mouseInit, dataTransfer }])
+            if (HAS_DRAG && $.draggable) events.push(['dragstart', { ...mouseInit, dataTransfer }])
             dispatchEventChain($, events)
+
+            if (HAS_DRAG && !$.draggable)
+              for (let $ of $$otherElementsUnderCursor)
+                if ($.draggable) {
+                  dispatchEvent($, 'dragstart', { ...mouseInit, dataTransfer })
+                  break
+                }
           },
           dragGrabbedElementBy: function (distX, distY, cb) {
             // This is the dragging portion of drag & drop. We move by the
@@ -518,11 +537,12 @@
               // Elements which the cursor has left
               for (let $elWithCursor of $$elsContainingCursor) {
                 if ($$elsUnderCursor.includes($elWithCursor)) continue
-                dispatchEventChain($elWithCursor, [
+                let events = [
                   ['pointerleave', mouseInit],
                   ['mouseleave', mouseInit],
-                  ['dragleave', { ...mouseInit, dataTransfer }],
-                ])
+                ]
+                if (HAS_DRAG) events.push(['dragleave', { ...mouseInit, dataTransfer }])
+                dispatchEventChain($elWithCursor, events)
               }
 
               for (let $elUnderCursor of $$elsUnderCursor) {
@@ -532,7 +552,7 @@
                     ['pointerenter', mouseInit],
                     ['mouseenter', mouseInit],
                   ]
-                  if ($.draggable && HAS_DRAG) events.push(['dragenter', { ...mouseInit, dataTransfer }])
+                  if (HAS_DRAG) events.push(['dragenter', { ...mouseInit, dataTransfer }])
                   dispatchEventChain($elUnderCursor, events)
                 }
 
@@ -540,7 +560,7 @@
                   ['pointermove', mouseInit],
                   ['mousemove', mouseInit],
                 ]
-                if ($.draggable && HAS_DRAG) events.push(['dragover', { ...mouseInit, dataTransfer }])
+                if (HAS_DRAG) events.push(['dragover', { ...mouseInit, dataTransfer }])
                 dispatchEventChain($elUnderCursor, events)
               }
 
@@ -629,7 +649,8 @@
             // Check that there is a specified number of elements that match the
             // element type and label.
             let $$elms = getElementsByLabel(elementType, label)
-            if ($$elms.length !== count) throw Error(`Expected ${count} ${elementType} elements with label "${label}", but found ${$$elms.length}`)
+            if ($$elms.length !==
+                count) throw Error(`Expected ${count} ${elementType} elements with label "${label}", but found ${$$elms.length}`)
           },
           // Assert element state
           shouldHaveFocus(elementType, label, position = 1) {
