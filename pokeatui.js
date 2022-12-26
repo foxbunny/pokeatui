@@ -642,7 +642,7 @@
           noElementsMatch(elementType, label) {
             // Check that there are no elements that match the element type and
             // label.
-            for (let $ of generateElementsByLabel(elementType, label))
+            if (!generateElementsByLabel(elementType, label).next().done)
               throw Error(`Expected no elements of ${elementType} with label "${label}" but got at least one`)
           },
           countElementsWithLabel(elementType, label, count) {
