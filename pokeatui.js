@@ -249,6 +249,16 @@
           ])
           dispatchEvent($, 'blur')
         },
+        labelContains = ($, label) => (
+          $.textContent.includes(label)
+          || $.getAttribute('aria-label')?.includes(label)
+          || $frame.contentDocument.getElementById($.getAttribute('aria-labelledby'))?.includes(label)
+        ),
+        fieldLabelContains = ($, label) => {
+          let $label = $.id && $frame.contentDocument.querySelector(`label[for=${$.id}]:not([hidden])`) || $.closest('label:not([hidden])')
+          if (!$label) return false
+          return $label.textContent.includes(label)
+        },
         generateElementsByLabel = function* (elementType, label) {
           // Yield elements that match the element type and label.
           //
@@ -259,15 +269,34 @@
           switch (elementType) {
             case 'button':
               for (let $ of $frame.contentDocument.querySelectorAll(`:is(button,[role=button]):not([hidden])`))
-                if ($.textContent.includes(label)) yield $
+                if (labelContains($, label)) yield $
               break
             case 'form field':
               for (let $ of $frame.contentDocument.querySelectorAll(':is(input,select,textarea):not([hidden])')) {
-                let $label = $.id && $frame.contentDocument.querySelector(`label[for=${$.id}]:not([hidden])`) ||
-                             $.closest('label:not([hidden])')
-                if (!$label) continue
-                if ($label.textContent.includes(label)) yield $
+                if (fieldLabelContains($, label)) yield $
+                else if ($.value.includes(label)) yield $
               }
+              break
+            case 'decoration':
+              let candidates = []
+              for (let $ of $frame.contentDocument.querySelectorAll(':is(span,div):not([hidden])'))
+                if (labelContains($, label)) candidates.push($)
+              candidates.sort(($a, $b) => $a.children.length - $b.children.length)
+              for (let $ of candidates) yield $
+              break
+            case 'area':
+              for (let $ of $frame.contentDocument.querySelectorAll('*:not([hidden])'))
+                if (
+                  labelContains($, label)
+                  || ($.matches('input,select,textarea') && (fieldLabelContains($, label) || $.value.includes(label)))
+                ) {
+                  if ($.matches(':is(section,article,main,[role="region"]):not([hidden])')) {
+                    yield $
+                    continue
+                  }
+                  let $region = $.closest(':is(section,article,main,[role="region"]):not([hidden])')
+                  if ($region) yield $
+                }
               break
           }
         },
@@ -408,7 +437,7 @@
               throw Error('There is already a grabbed element. You must drop it first.')
 
             let
-              [$, ...$$otherElementsUnderCursor] = getElementsAtCoordinates(x, y),
+              $ = getElementAtCoordinates(x, y),
               mouseInit = {
                 screenX: x,
                 screenY: y,
@@ -452,12 +481,21 @@
             if (HAS_DRAG && $.draggable) events.push(['dragstart', { ...mouseInit, dataTransfer }])
             dispatchEventChain($, events)
 
-            if (HAS_DRAG && !$.draggable)
-              for (let $ of $$otherElementsUnderCursor)
-                if ($.draggable) {
-                  dispatchEvent($, 'dragstart', { ...mouseInit, dataTransfer })
-                  break
-                }
+            if (HAS_DRAG && !$.draggable) {
+              let $draggable = $.closest('[draggable]')
+              if ($draggable) dispatchEvent($draggable, 'dragstart', { ...mouseInit, dataTransfer })
+            }
+          },
+          grabElement(elementType, label, position = 1) {
+            // We cannot grab two elements at once
+            if ($frame.contentDocument.__grabbedElement)
+              throw Error('There is already a grabbed element. You must drop it first.')
+
+            let
+              $ = getElementByLabel(elementType, label, position),
+              x = $.offsetLeft + $.offsetWidth / 2,
+              y = $.offsetTop + $.offsetHeight / 2
+            this.grabElementAtPoint(x, y)
           },
           dragGrabbedElementBy: function (distX, distY, cb) {
             // This is the dragging portion of drag & drop. We move by the
@@ -570,6 +608,22 @@
               // Perform the next step in the move
               this.setTimeout(move, 10)
             }())
+          },
+          dragGrabbedElementOver(elementType, label, position = 1, cb) {
+            if (!$frame.contentDocument.__grabbedElement)
+              throw Error('There is no grabbed element. You must grab one first.')
+
+            if (typeof position === 'function') {
+              cb = position
+              position = 1
+            }
+            let
+              $ = getElementByLabel(elementType, label, position),
+              x = $.offsetLeft + $.offsetWidth / 2,
+              y = $.offsetTop + $.offsetHeight / 2,
+              distX = x - $frame.contentDocument.__grabbedElement.__startX,
+              distY = y - $frame.contentDocument.__grabbedElement.__startY
+            this.dragGrabbedElementBy(distX, distY, cb)
           },
           dropGrabbedElement() {
             // This is the release phase in the drag & drop motion.

@@ -19,7 +19,7 @@ I wanted a test runner that:
 - Can simulate user interactions at a high level
 - Does not require "programming" the tests; minimize moving parts, make all
   calls more or less declarative
-- Can run against different environments and browsers without too much (any?) 
+- Can run against different environments and browsers without too much (any?)
   messing around, preferably on an actual computer/phone
 - Can see the UI updating live as the tests run
 - Does *not* run tests in parallel; this has been giving me headaches in
@@ -31,9 +31,9 @@ intended to be the "next big thing" in UI testing. It's just my pet project.
 
 ## Example
 
-You will find an example of the tests written for the 
+You will find an example of the tests written for the
 [Vanilla TODO](https://github.com/foxbunny/vanilla-todo) demo project. The live
-version of the tests can be found 
+version of the tests can be found
 [here](https://foxbunny.github.io/vanilla-todo/tests.html).
 
 Excerpt from the tests:
@@ -78,8 +78,9 @@ Excerpt from the tests:
 - [x] Basic user interaction methods (clicking, typing, pasting text)
 - [x] Basic UI assertions (form value, presence/absence of elements)
 - [x] Add auto-scroll to drag & drop action
-- [ ] Allow interaction with label-less elements
-- [ ] Add support for performing actions based on coordinates (e.g., clicking)
+- [ ] ~~Allow interaction with label-less elements~~
+- [ ] ~~Add support for performing actions based on coordinates (e.g., clicking)~~
+- [x] Allow interaction with general areas
 - [ ] Handle elements that are visually hidden or have `pointer-events: none`
 - [x] Touch support
 - [ ] Touch gesture support (pinch, twist, swipe)
@@ -140,12 +141,13 @@ moment, though.
 
 ### Test page URL
 
-The first argument is the URL. Usually this is a path to the application 
+The first argument is the URL. Usually this is a path to the application
 HTML. You can deploy tests to the same server and run the tests in any  
 environment.
 
-If you [disable cross origin checks](https://stackoverflow.com/questions/3102819/disable-same-origin-policy-in-chrome) 
-in your browser, you point the function to any URL, like, say, the dev server's 
+If
+you [disable cross origin checks](https://stackoverflow.com/questions/3102819/disable-same-origin-policy-in-chrome)
+in your browser, you point the function to any URL, like, say, the dev server's
 URL.
 
 ```javascript
@@ -313,7 +315,7 @@ testPage('index.html')
 
 #### `scrollToTop()`
 
-Scroll the page to top. This method is synchronous and does not require a 
+Scroll the page to top. This method is synchronous and does not require a
 callback. Scrolling is instant.
 
 Example:
@@ -333,7 +335,7 @@ testPage('index.html')
 
 Simulates a click on the element identified by its type and label. The
 element type is an abstract concept not directly correlated to the tag name.
-(See the Element type and Label sections.) The `position` argument is used 
+(See the Element type and Label sections.) The `position` argument is used
 to specify which of the multiple matching elements should receive the click.
 
 Clicking a focusable element will focus it just like the browser would normally.
@@ -353,6 +355,34 @@ testPage('index.html')
   .useCase('Close the modal', (ui, done) => {
     ui.clickElement('button', 'Menu')
     ui.clickElement('button', 'Close')
+    done()
+  })
+```
+
+#### `grabElement(elementType, label, position = 1)`
+
+Click and hold an element identified by its type and label. The element type is
+an abstract concept not directly correlated to the tag name. (See the Element
+type and Label sections.) The `position` argument is used to specify which of
+the multiple matching elements should receive the click.
+
+The cursor position of the click is the center of the element.
+
+If the element being clicked is a `draggable`, then a `dragstart` event is
+also emitted.
+
+This method will throw an exception if an element has already been grabbed
+previously.
+
+Under the hood, this method just calculates the cursor position and then calls
+the `grabElementAtPoint()`.
+
+Example:
+
+```javascript
+testPage('index.html')
+  .useCase('Move to trash', (ui, done) => {
+    ui.grabElement('area', 'Name')
     done()
   })
 ```
@@ -380,14 +410,40 @@ testPage('index.html')
   })
 ```
 
+#### `dragGrabbedOver(elementType, label, position = 1, cb)`
+
+If an element has been grabbed using `grabElement()` or `grabElementAtPoint()`,
+this method will drag it over to the center of an element identified by the 
+element type and label. The third argument, `position`, is used to specify the 
+position of the element within a list of elements that have the same element 
+type and label. A fake cursor is drawn over the page while the drag is being
+simulated to visualize the motion. Appropriate events are triggered on elements
+below the cursor while it moves. If the grabbed element has a `draggable`
+attribute, the `dragover` event is also triggered on elements under the
+simulated cursor.
+
+The last argument is a callback that is invoked once the motion is completed.
+
+This method will throw an exception if an element has not been grabbed
+previously.
+
+```javascript
+testPage('index.html')
+  .useCase('Move to trash', (ui, done) => {
+    ui.grabElement('decoration', 'grab handle', 2)
+    ui.dragGrabbedElementOver('decoration', 'grab handle', 3, done)
+  })
+```
+
 #### `dragGrabbedElementBy(distX, distY, cb)`
 
-If an element has been grabbed using `grabElementAtPoint()`, this method
-will drag it by `distX` and `distY` pixels along the x and y axes, respectively.
-A fake cursor is drawn over the page while the drag is being simulated to
-visualize the motion. Appropriate events are triggered on elements below the
-cursor while it moves. If the grabbed element has a `draggable` attribute, the
-`dragover` event is also triggered on elements under the simulated cursor.
+If an element has been grabbed using `grabElement()` or `grabElementAtPoint()`,
+this method will drag it by `distX` and `distY` pixels along the x and y axes,
+respectively. A fake cursor is drawn over the page while the drag is being
+simulated to visualize the motion. Appropriate events are triggered on elements
+below the cursor while it moves. If the grabbed element has a `draggable`
+attribute, the `dragover` event is also triggered on elements under the
+simulated cursor.
 
 The third argument is a callback that is invoked once the motion is completed.
 
@@ -420,7 +476,7 @@ testPage('index.html')
   .useCase('Move to trash', (ui, done) => {
     ui.grabElementAtPoint(200, 463)
     ui.dragGrabbedElementBy(-20, 304, thenDrop)
-    function thenDrop() { 
+    function thenDrop() {
       ui.dropGrabbedElement()
       done()
     }
@@ -454,12 +510,12 @@ testPage('index.html')
 
 #### `pasteIntoFocusedField(text)`
 
-Simulates pasting text into a text field. This method simulates the user 
-using a keyboard shortcut to paste text into a text field. It triggers a 
-Ctrl+V shortcut and then inserts the text into the field. An `input` event 
+Simulates pasting text into a text field. This method simulates the user
+using a keyboard shortcut to paste text into a text field. It triggers a
+Ctrl+V shortcut and then inserts the text into the field. An `input` event
 is triggered once the field value is modified.
 
-Unlike `typeIntoFocusedField()`, this method is synchronous and finishes 
+Unlike `typeIntoFocusedField()`, this method is synchronous and finishes
 near-instantly.
 
 Example:
@@ -496,12 +552,12 @@ testPage('index.html')
 
 #### `countMatchingElements(elementType, label, count)`
 
-Checks that there are exactly `count` elements that match the type-label 
-combination. Throws if there are less or more matching elements. (See 
+Checks that there are exactly `count` elements that match the type-label
+combination. Throws if there are less or more matching elements. (See
 Element types and Labels sections.)
 
 This method cannot use `0` as the count. To check that there are no elements,
-use the `noElementsMatch()` method instead. This is done to improve the 
+use the `noElementsMatch()` method instead. This is done to improve the
 clarity of the intent as well as to keep the code simpler under the hood.
 
 Example:
@@ -518,8 +574,8 @@ testPage('index.html')
 
 #### `shouldHaveFocus(elementType, label, position = 1)`
 
-Checks that an element matching element type and label has focus. The third 
-argument, `position`, is used to specify which of the multiple matches we 
+Checks that an element matching element type and label has focus. The third
+argument, `position`, is used to specify which of the multiple matches we
 are targeting.
 
 If no element has focus, this method will throw an exception.
@@ -537,17 +593,18 @@ testPage('index.html')
 
 #### `fieldShouldHaveValue(label, value, position = 1)`
 
-Checks a form field's value. This method will look up a form field with the 
-specified label and throw an exception if the value does not match. The 
-third argument, `position`, is used to specify which of the multiple matches 
+Checks a form field's value. This method will look up a form field with the
+specified label and throw an exception if the value does not match. The
+third argument, `position`, is used to specify which of the multiple matches
 we are targeting. The value matches with strict equality and case-sensitively.
 
-For checkboxes and radio buttons the value is associated with the state of 
+For checkboxes and radio buttons the value is associated with the state of
 those controls:
 
 - `'unchecked'` - checkbox/radio is not checked
 - `'checked'` - checkbox/radio is checked
-- `'indeterminate'` - checkbox is [indeterminate](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/checkbox#indeterminate_state_checkboxes)
+- `'indeterminate'` - checkbox
+  is [indeterminate](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/checkbox#indeterminate_state_checkboxes)
 
 Example:
 
@@ -567,22 +624,22 @@ Here are some notes about the concepts used in PokeAtUI.
 
 ### Event simulation
 
-Since PokeAtUI is a JavaScript script, it is subject to the same limitations 
-as any application. It cannot move the mouse, it cannot trigger things that 
-your application cannot trigger (e.g., trigger keyboard navigation), and so 
-on. The actions triggered by the test code are therefore not going to match 
-the real browser behavior 100%. While some effort has been invested into 
-making PokeAtUI reasonably accurate, it's goal is not a faithful 
-reproduction of the real browser behavior. Rather, it aims to be accurate 
+Since PokeAtUI is a JavaScript script, it is subject to the same limitations
+as any application. It cannot move the mouse, it cannot trigger things that
+your application cannot trigger (e.g., trigger keyboard navigation), and so
+on. The actions triggered by the test code are therefore not going to match
+the real browser behavior 100%. While some effort has been invested into
+making PokeAtUI reasonably accurate, it's goal is not a faithful
+reproduction of the real browser behavior. Rather, it aims to be accurate
 enough to facilitate UI testing for most apps.
 
 Apps that will not be testable with PokeAtUI are apps that use various hacks.
-For example, if your app relies on the fact that preventing the default 
+For example, if your app relies on the fact that preventing the default
 behavior in `pointerdown` will prevent the `click` event but not `pointerup`,
-you will not be able to test using PokeAtUI as this library has a simplified 
-handling of default prevention that will cause `pointerup` to also be 
-prevented. However, if you are suppressing `mousedown` by preventing the 
-default in `touchstart`, which is a common practice to support both 
+you will not be able to test using PokeAtUI as this library has a simplified
+handling of default prevention that will cause `pointerup` to also be
+prevented. However, if you are suppressing `mousedown` by preventing the
+default in `touchstart`, which is a common practice to support both
 touch and mouse, PokeAtUI will be able to replicate this.
 
 ### Element types
@@ -592,14 +649,23 @@ The following element types are supported by PokeAtUI:
 - **button** - either an actual `<button>` element or any element with
   `role="button"` attribute.
 - **form field** - inputs, select lists, textareas
+- **decoration** - divs and spans; when decoration elements are queried, 
+  elements with fewer child nodes take precedence
+- **area** - landmark areas such as `<section>`, `<article>`, `<main>`, or 
+  any element that has a `role="region"` attribute; when areas are queried, 
+  the label is either that of the area itself, or the closest child node
+
+Only elements that do not have the `hidden` attribute are selectable, but the
+elements that are just visually hidden are still selectable.
 
 ### Labels
 
-The label is a readable text that is associated with the element. This can be a
+The label is a readable text that is associated with the element. This is a
 partial match (the specified label ony needs to be contained in the on-screen
 label) but it's always case-sensitive. In the form fields' case, the label is
 either the text content of a `<label>` element whose `for` attribute points to
-the input, or the text content of a `<label>` element that encloses the input.
+the input, or the text content of a `<label>` element that encloses the 
+input, or the field value.
 
 Only elements that do not have the `hidden` attribute are selectable, but the
 elements that are just visually hidden are still selectable.
@@ -608,5 +674,5 @@ Visually hidden labels are also considered when testing the label text.
 
 ## License
 
-This code is licensed under the terms of the MIT license. See 
+This code is licensed under the terms of the MIT license. See
 [LICENSE.txt](LICENSE.txt) for the boring legal verbiage.
