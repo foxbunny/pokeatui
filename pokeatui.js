@@ -13,6 +13,7 @@
      * @param clearStorageBetweenTests - whether to clear localStorage between tests
      * @param minTypingDelay - minimum typing speed in ms per character (there is a 0~50ms jitter added to that)
      * @param testTimeout - time in ms before a test automatically fails
+     * @param clearOnFinish - whether to remove the test UI when done
      */
     testDocument = (
       url,
@@ -21,7 +22,8 @@
         height = 600,
         clearStorageBetweenTests = true,
         minTypingDelay = 50,
-        testTimeout = 8000
+        testTimeout = 8000,
+        clearOnFinish = false,
       } = {}
     ) => {
       let
@@ -65,6 +67,13 @@
             <button value="mouse-coords">Get mouse coordinate</button>
           `,
         })
+
+      let clearUI = clearOnFinish
+        ? () => {
+          $frame.remove()
+          $tools.remove()
+        }
+        : () => {}
 
       // Enable and instrument the tools and the iframe
       Object.assign($frame, { width, height })
@@ -742,18 +751,22 @@
           testCases.push([label, testCode])
           return this
         },
-        run() {
+        run(cb) {
+          console.log(`====> ${url}`)
           // Run the test suite. Test are run one by one, not in parallel.
           // This way or running the tests is slower, but we avoid a whole
           // class of issues stemming from shared resources such as
           // localStorage, indexedDB, and similar.
           let
+            suiteStart = performance.now(),
             currentTestIdx = 0,
             testSuiteFailed = false,
             // Save a snapshot of the localStorage because we're testing a
             // live page
             currentLocalStorageContent = JSON.stringify($frame.contentWindow.localStorage),
             finish = () => {
+              if (testSuiteFailed) return
+              console.log(`END : total time ${(performance.now() - suiteStart).toFixed(2)}ms`)
               // Restore the snapshot of the local storage when the frame
               // unloads (by user's closing the host page tab).
               $frame.contentWindow.addEventListener('beforeunload', () => {
@@ -761,6 +774,8 @@
                   Object.assign($frame.contentWindow.localStorage, JSON.parse(currentLocalStorageContent))
                 }, 1) // add a timeout in case the page under test also stores something on unload
               }, { once: true })
+              clearUI()
+              cb?.()
             }
 
           ;(function runNextCase() {

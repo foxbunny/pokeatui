@@ -127,14 +127,14 @@ waiting for a big bright idea.
 
 ## Initializing the test page
 
-To initialize the test page, we call the PokeAtUI's `testPage()` function.
+To initialize the test page, we call the PokeAtUI's `testDocument()` function.
 
 ```javascript
 // my-test.js
 {
-  let { testPage } = window.PokeAtUI
+  let { testDocument } = window.PokeAtUI
 
-  testPage('index.html')
+  testDocument('index.html')
 }
 ```
 
@@ -156,9 +156,9 @@ URL.
 ```javascript
 // my-test.js
 {
-  let { testPage } = window.PokeAtUI
+  let { testDocument } = window.PokeAtUI
 
-  testPage('http://localhost:8000/')
+  testDocument('http://localhost:8000/')
 }
 ```
 
@@ -167,9 +167,9 @@ You can even test a live page at a production URL:
 ```javascript
 // my-test.js
 {
-  let { testPage } = window.PokeAtUI
+  let { testDocument } = window.PokeAtUI
 
-  testPage('https://example.com/')
+  testDocument('https://example.com/')
 }
 ```
 
@@ -180,7 +180,7 @@ environment passed via a query string parameter:
 // my-test.js
 {
   let
-    { testPage } = window.PokeAtUI,
+    { testDocument } = window.PokeAtUI,
     TEST_URLS = {
       local: 'index.html',
       dev: 'https://dev.coolservice.io/',
@@ -188,7 +188,7 @@ environment passed via a query string parameter:
     },
     env = new URLSearchParams(location.search).get('env') || 'local'
 
-  testPage(TEST_URLS[env])
+  testDocument(TEST_URLS[env])
 }
 ```
 
@@ -203,9 +203,9 @@ You can pass a second argument that represents the runner options. For example:
 ```javascript
 // my-test.js
 {
-  let { testPage } = window.PokeAtUI
+  let { testDocument } = window.PokeAtUI
 
-  testPage('index.html', { width: 1024, height: 768 })
+  testDocument('index.html', { width: 1024, height: 768 })
 }
 ```
 
@@ -220,6 +220,9 @@ The following options are available:
   individual use cases. Completely separately from this, the storage is
   cleared once before the test suite runs, and restored once the page is closed.
   (Default: `true`)
+- `clearOnFinish` - clears the test framework UI elements after finish. This 
+  is useful when running multiple test suites in sequence. Toggle off if you 
+  want to keep the UI visible after the test run. (Default: `false`)
 - `minTypingDelay` - minimum interval in ms between two keystrokes when
   simulating typing on the keyboard. This interval is further extended by a
   jitter of 0 to 50ms. (Default: `50`)
@@ -238,9 +241,9 @@ scenarios that your users will follow. For example:
 ```javascript
 // my-test.js
 {
-  let { testPage } = window.PokeAtUI
+  let { testDocument } = window.PokeAtUI
 
-  testPage('index.html')
+  testDocument('index.html')
     .useCase('Sign up', (ui, done) => {
 
     })
@@ -269,9 +272,9 @@ Finally, to run all use cases, simply call the `.run()` method after all the
 ```javascript
 // my-test.js
 {
-  let { testPage } = window.PokeAtUI
+  let { testDocument } = window.PokeAtUI
 
-  testPage('index.html')
+  testDocument('index.html')
     .useCase('Sign up', (ui, done) => {
 
     })
@@ -281,6 +284,36 @@ Finally, to run all use cases, simply call the `.run()` method after all the
 ```
 
 The test progress and reports are displayed in the console.
+
+You can run multiple tests suites. Although you can technically just run 
+multiple `testDocument()` suites in parallel, it is recommended to run them
+sequentially. The `.run()` method takes a callback that is invoked when the
+test suite finishes. This can be used to chain the next test.
+
+```javascript
+// my-test.js
+{
+  let { testDocument } = window.PokeAtUI
+
+  let
+    testFirst = () =>
+      testDocument('index.html')
+        .useCase('Sign up', (ui, done) => {
+
+        })
+        // ....
+        .run(testSecond),
+    testSecond = () =>
+      testDocument('second.html')
+        .useCase('Sign up', (ui, done) => {
+
+        })
+        // ....
+        .run()
+  
+  testFirst()
+}
+```
 
 ## UI tools
 
@@ -302,7 +335,7 @@ This is useful for testing things like state persistence across reload, etc.
 Example:
 
 ```javascript
-testPage('index.html')
+testDocument('index.html')
   .useCase('Title persists after refresh', (ui, done) => {
     ui.clickElement('form field', 'Title')
     ui.typeIntoFocusedField('Temporary title', thenRefresh)
@@ -324,7 +357,7 @@ callback. Scrolling is instant.
 Example:
 
 ```javascript
-testPage('index.html')
+testDocument('index.html')
   .useCase('Scroll to top', (ui, done) => {
     ui.clickElement('button', 'Add task')
     ui.scrollToTop()
@@ -354,7 +387,7 @@ will not have `screenX`, `screenY` and similar properties.
 Example:
 
 ```javascript
-testPage('index.html')
+testDocument('index.html')
   .useCase('Close the modal', (ui, done) => {
     ui.clickElement('button', 'Menu')
     ui.clickElement('button', 'Close')
@@ -383,7 +416,7 @@ the `grabElementAtPoint()`.
 Example:
 
 ```javascript
-testPage('index.html')
+testDocument('index.html')
   .useCase('Move to trash', (ui, done) => {
     ui.grabElement('area', 'Name')
     done()
@@ -406,7 +439,7 @@ previously.
 Example:
 
 ```javascript
-testPage('index.html')
+testDocument('index.html')
   .useCase('Move to trash', (ui, done) => {
     ui.grabElementAtPoint(200, 463)
     done()
@@ -431,7 +464,7 @@ This method will throw an exception if an element has not been grabbed
 previously.
 
 ```javascript
-testPage('index.html')
+testDocument('index.html')
   .useCase('Move to trash', (ui, done) => {
     ui.grabElement('decoration', 'grab handle', 2)
     ui.dragGrabbedElementOver('decoration', 'grab handle', 3, done)
@@ -456,7 +489,7 @@ previously.
 Example:
 
 ```javascript
-testPage('index.html')
+testDocument('index.html')
   .useCase('Move to trash', (ui, done) => {
     ui.grabElementAtPoint(200, 463)
     ui.dragGrabbedElementBy(-20, 304, done)
@@ -475,7 +508,7 @@ previously.
 Example:
 
 ```javascript
-testPage('index.html')
+testDocument('index.html')
   .useCase('Move to trash', (ui, done) => {
     ui.grabElementAtPoint(200, 463)
     ui.dragGrabbedElementBy(-20, 304, thenDrop)
@@ -504,7 +537,7 @@ This method will throw an exception if there are no focused elements.
 Example:
 
 ```javascript
-testPage('index.html')
+testDocument('index.html')
   .useCase('Enter the name', (ui, done) => {
     ui.clickElement('form field', 'Name')
     ui.typeIntoFocusedField('John Doe', done)
@@ -524,7 +557,7 @@ near-instantly.
 Example:
 
 ```javascript
-testPage('index.html')
+testDocument('index.html')
   .useCase('Paste the name', (ui, done) => {
     ui.clickElement('form field', 'Name')
     ui.pasteIntoFocusedField('John Doe')
@@ -542,7 +575,7 @@ if at least one element matches. (See Element types and Labels sections.)
 Example:
 
 ```javascript
-testPage('index.html')
+testDocument('index.html')
   .useCase('Delete multiple nodes', (ui, done) => {
     ui.clickElement('button', 'Add a node')
     ui.clickElement('button', 'Add a node')
@@ -566,7 +599,7 @@ clarity of the intent as well as to keep the code simpler under the hood.
 Example:
 
 ```javascript
-testPage('index.html')
+testDocument('index.html')
   .useCase('Add multiple nodes', (ui, done) => {
     ui.clickElement('button', 'Add a node')
     ui.clickElement('button', 'Add a node')
@@ -586,7 +619,7 @@ If no element has focus, this method will throw an exception.
 Example:
 
 ```javascript
-testPage('index.html')
+testDocument('index.html')
   .useCase('Add a new node', (ui, done) => {
     ui.clickElement('button', 'Add a node')
     ui.shouldHaveFocus('form field', 'Node name')
@@ -612,7 +645,7 @@ those controls:
 Example:
 
 ```javascript
-testPage('index.html')
+testDocument('index.html')
   .useCase('Edit node text', (ui, done) => {
     ui.clickElement('button', 'Add a node')
     ui.fieldShouldHaveValue('Position', '1')
