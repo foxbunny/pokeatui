@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Button</title>
+  </head>
+  <body>
+    <button id="button">Click this</button>
+    <p id="output"></p>
+    <script type="text/javascript">
+      let
+        $button = document.getElementById('button'),
+        $output = document.getElementById('output')
+
+      $button.clickCount = 0
+
+      $button.onclick = () => {
+        $button.clickCount++
+        $output.textContent = `${$button.clickCount} clicks`
+      }
+    </script>
+  </body>
+</html>

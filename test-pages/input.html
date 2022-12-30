@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Input</title>
+  </head>
+  <body>
+    <label>
+      My text
+      <input id="textbox" type="text">
+    </label>
+    <p id="output"></p>
+
+    <script type="text/javascript">
+      let
+        $input = document.getElementById('textbox'),
+        $output = document.getElementById('output')
+
+      $input.oninput = () => {
+        $output.textContent = 'You typed ' + $input.value
+      }
+    </script>
+  </body>
+</html>

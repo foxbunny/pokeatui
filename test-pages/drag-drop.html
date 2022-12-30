@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Drag & Drop</title>
+    <style>
+      #draggable,
+      #drop-target {
+        padding: 1em;
+        background: silver;
+        margin: 1em 0;
+      }
+
+      #draggable[data-dragging] {
+        background: yellow;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="draggable" draggable="true">Drag me</div>
+    <div id="drop-target">Drop here</div>
+
+    <script type="text/javascript">
+      let
+        $draggable = document.getElementById('draggable'),
+        $dropTarget = document.getElementById('drop-target')
+
+      $draggable.ondragstart = ev => {
+        ev.preventDefault()
+        ev.dataTransfer.setData('text/plain', 'nothing')
+        $dropTarget.textContent = 'Bring it over'
+        $draggable.dataset.dragging = true
+      }
+      $dropTarget.ondragenter = ev => {
+        ev.preventDefault()
+        $dropTarget.textContent = 'Drop it now'
+      }
+      $dropTarget.ondragleave = ev => {
+        ev.preventDefault()
+        $dropTarget.textContent = 'Drop here'
+      }
+      $dropTarget.ondragend = ev => {
+        ev.preventDefault()
+        $dropTarget.textContent = 'There you go!'
+        delete $draggable.dataset.dragging
+      }
+    </script>
+  </body>
+</html>

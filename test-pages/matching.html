@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Matching</title>
+  </head>
+  <body>
+    <header>
+      Header text
+    </header>
+    <main>
+      <h1>Matching</h1>
+
+      Inline text
+
+      <section>
+        <h2>A section</h2>
+        <p>Section text</p>
+      </section>
+
+      <form>
+        <label>
+          Some input
+          <input name="input1" value="Input 1's value">
+        </label>
+
+        <label for="input2">Input 2</label><br>
+        <input id="input2" name="input2" value="Input 2's value">
+
+        <label>
+          Some select
+          <select>
+            <option>Blank</option>
+            <option value="option 1" selected>One</option>
+            <option value="option 2">Two</option>
+            <option value="option 3">Three</option>
+            <option value="option 4">Four</option>
+          </select>
+        </label>
+
+        <fieldset>
+          <label>
+            Some text area
+
+            <textarea>There once was a
+  text area.</textarea>
+          </label>
+
+          <label>
+            <input type="checkbox"> Check this out
+          </label>
+        </fieldset>
+
+        <input type="hidden" name="no-label">
+      </form>
+
+      <div role="region" id="fake-region">
+        I'm a fake region
+      </div>
+
+      <div role="region" aria-label="Here we go" id="labelled-fake-region">
+        Not going anywhere
+      </div>
+
+      <output id="output"></output>
+    </main>
+    <aside>
+      <h3>An aside</h3>
+
+      <button>Click aside</button>
+      <button>
+        <span>Complex</span>
+        <span>label</span>
+      </button>
+      <button aria-label="Click an icon">😁</button>
+      <button aria-labelledby="icon-label">😁</button>
+      <span id="icon-label">Click another icon</span>
+
+      <span>Click aside</span>
+    </aside>
+    <footer>
+      Footer text
+    </footer>
+
+    <script>
+      let $output = document.getElementById('output')
+      document.body.onclick = ev => {
+        $output.textContent = 'You clicked a ' + ev.target.tagName.toLowerCase() + (ev.target.id ? '#' + ev.target.id : '')
+      }
+    </script>
+  </body>
+</html>
