@@ -24,7 +24,7 @@
         minTypingDelay = 50,
         testTimeout = 8000,
         clearOnFinish = false,
-      } = {}
+      } = {},
     ) => {
       let
         // We write the CSS directly in JS so that we can keep the test
@@ -203,6 +203,7 @@
           '?': { key: '?', code: 'Slash', which: 63, shiftKey: true },
           ' ': { key: ' ', code: 'Space', which: 32, shiftKey: false },
         },
+        REGION_SELECTOR = ':is(section,article,main,header,footer,aside,fieldset,form,[role="region"]):not([hidden])',
         NON_BUBBLING_EVENTS = ['focus', 'blur', 'load', 'unload', 'scroll'],
         NON_CANCELABLE_EVENTS = ['focus', 'blur', 'change', 'input', 'mousewheel', 'load', 'unload', 'scroll'],
         dispatchEvent = ($, type, init = {}) => {
@@ -258,55 +259,90 @@
           ])
           dispatchEvent($, 'blur')
         },
-        labelContains = ($, label) => (
-          $.textContent.includes(label)
-          || $.getAttribute('aria-label')?.includes(label)
-          || $frame.contentDocument.getElementById($.getAttribute('aria-labelledby'))?.includes(label)
-        ),
-        fieldLabelContains = ($, label) => {
-          let $label = $.id && $frame.contentDocument.querySelector(`label[for=${$.id}]:not([hidden])`) || $.closest('label:not([hidden])')
-          if (!$label) return false
-          return $label.textContent.includes(label)
+        cleanText = text => text?.replace(/\s+/g, ' ').trim(),
+        startMatcher = text => otherText => cleanText(otherText)?.startsWith(text),
+        endMatcher = text => otherText => cleanText(otherText)?.endsWith(text),
+        containsMatcher = text => otherText => cleanText(otherText)?.includes(text),
+        identityMatcher = text => otherText => cleanText(otherText) === text,
+        patternMatcher = pattern => {
+          if (typeof pattern === 'string') pattern = new RegExp(pattern)
+          return otherText => pattern.test(cleanText(otherText))
         },
-        generateElementsByLabel = function* (elementType, label) {
+        createMatcher = text => {
+          if (text instanceof RegExp) return patternMatcher(text)
+
+          switch (text.slice(0, 2)) {
+            case '^=':
+              return startMatcher(text.slice(2))
+            case '$=':
+              return endMatcher(text.slice(2))
+            case '*=':
+              return containsMatcher(text.slice(2))
+            default:
+              return identityMatcher(text)
+          }
+        },
+        labelMatches = ($, matcher) => {
+          return (
+            matcher($.textContent)
+            || matcher($.getAttribute('aria-label'))
+            || matcher($frame.contentDocument.getElementById($.getAttribute('aria-labelledby'))?.textContent)
+          )
+        },
+        fieldLabelMatches = ($, matcher) => {
+          if (!$.labels) return
+          for (let $label of $.labels) {
+            // Selects and textareas are treated as part of the 'textContent'
+            // of the label, so we will clone the label and remove any such
+            // elements before we check the actual text.
+            let $copy = $label.cloneNode(true)
+            $copy.querySelectorAll('select,textarea').forEach($ => $.remove())
+            if (matcher($copy.textContent)) return true
+          }
+        },
+        generateElementsByLabel = function * (elementType, label) {
           // Yield elements that match the element type and label.
           //
           // Element type is an abstract concept unrelated to tag names. They
           // are defined from the perspective of the end user.
           //
           // Elements with a 'hidden' attribute are not counted as existing.
+          let matcher = createMatcher(label)
+
           switch (elementType) {
             case 'button':
               for (let $ of $frame.contentDocument.querySelectorAll(`:is(button,[role=button]):not([hidden])`))
-                if (labelContains($, label)) yield $
+                if (labelMatches($, matcher)) yield $
               break
             case 'form field':
               for (let $ of $frame.contentDocument.querySelectorAll(':is(input,select,textarea):not([hidden])')) {
-                if (fieldLabelContains($, label)) yield $
-                else if ($.value.includes(label)) yield $
+                if (fieldLabelMatches($, matcher)) yield $
+                else if (matcher($.value)) yield $
               }
               break
             case 'decoration':
               let candidates = []
-              for (let $ of $frame.contentDocument.querySelectorAll(':is(span,div):not([hidden])'))
-                if (labelContains($, label)) candidates.push($)
+              for (let $ of $frame.contentDocument.querySelectorAll(':is(span,div):not([hidden]):not([role])'))
+                if (labelMatches($, matcher)) candidates.push($)
               candidates.sort(($a, $b) => $a.children.length - $b.children.length)
               for (let $ of candidates) yield $
               break
             case 'area':
               for (let $ of $frame.contentDocument.querySelectorAll('*:not([hidden])'))
                 if (
-                  labelContains($, label)
-                  || ($.matches('input,select,textarea') && (fieldLabelContains($, label) || $.value.includes(label)))
+                  labelMatches($, matcher)
+                  || ($.matches('input,select,textarea') && (fieldLabelMatches($, matcher) || matcher($.value)))
                 ) {
-                  if ($.matches(':is(section,article,main,[role="region"]):not([hidden])')) {
-                    yield $
-                    continue
-                  }
-                  let $region = $.closest(':is(section,article,main,[role="region"]):not([hidden])')
-                  if ($region) yield $
+                  let $region = $.closest(REGION_SELECTOR)
+                  if ($region) yield $region
                 }
               break
+            case '*':
+              for (let $ of $frame.contentDocument.querySelectorAll('*'))
+                if (matcher($.textContent)) yield $
+              break
+            default:
+              throw Error(`Unsupported element type "${elementType}"`)
           }
         },
         getElementsByLabel = (elementType, label) => {
@@ -315,7 +351,7 @@
           // and assertion.
           let $$elms = Array.from(generateElementsByLabel(elementType, label))
           if ($$elms.length) return $$elms
-          throw Error(`No ${elementType} elements found with label "${label}"`)
+          throw Error(`No ${elementType} elements found with label "${label}" in the document`)
         },
         getElementByLabel = (elementType, label, position = 1) => {
           // Get a single element that match the element type and label.
@@ -324,7 +360,7 @@
           // withing the list of all matches.
           let i = position
           for (let $ of generateElementsByLabel(elementType, label)) if (!--i) return $
-          throw Error(`No ${elementType} elements found with label "${label}"`)
+          throw Error(`No ${elementType} elements found with label "${label}" at position ${position}`)
         },
         getElementAtCoordinates = (x, y) => {
           // Get an element at the specified coordinates. Not finding any is an
@@ -712,8 +748,8 @@
             // Check that there is a specified number of elements that match the
             // element type and label.
             let $$elms = getElementsByLabel(elementType, label)
-            if ($$elms.length !==
-                count) throw Error(`Expected ${count} ${elementType} elements with label "${label}", but found ${$$elms.length}`)
+            if ($$elms.length !== count)
+              throw Error(`Expected ${count} ${elementType} elements with label "${label}", but found ${$$elms.length}`)
           },
           // Assert element state
           shouldHaveFocus(elementType, label, position = 1) {
@@ -737,8 +773,9 @@
                 if (value === 'indeterminate' && $.indeterminate) return
                 break
               default:
-                // For all other inputs, we are looking for an exact value match
-                if ($.value === value) return
+                // For all other inputs, we are looking for a value match
+                let matcher = createMatcher(value)
+                if (matcher($.value)) return
             }
             throw Error(`Expected form field with label "${label}" to have value "${value}", but instead it has "${$.value}"`)
           },

@@ -678,30 +678,53 @@ prevented. However, if you are suppressing `mousedown` by preventing the
 default in `touchstart`, which is a common practice to support both
 touch and mouse, PokeAtUI will be able to replicate this.
 
+### Element position
+
+Some methods will let you specify the `position` parameter. This position 
+lets you select a particular element from a list of matches. The order in 
+which elements appear in the list of matches is determined by the DOM order.
+
 ### Element types
 
 The following element types are supported by PokeAtUI:
 
-- **button** - either an actual `<button>` element or any element with
+- `button` - either an actual `<button>` element or any element with
   `role="button"` attribute.
-- **form field** - inputs, select lists, textareas
-- **decoration** - divs and spans; when decoration elements are queried, 
-  elements with fewer child nodes take precedence
-- **area** - landmark areas such as `<section>`, `<article>`, `<main>`, or 
+- `form field` - inputs, select lists, textareas
+- `decoration` - divs and spans; when decoration elements are queried, 
+  elements with fewer child nodes take precedence. The elements should not 
+  have a `role` attribute in order to match.
+- `area` - landmark areas such as `<section>`, `<article>`, `<main>`, or 
   any element that has a `role="region"` attribute; when areas are queried, 
   the label is either that of the area itself, or the closest child node
+- `*` - any element
 
 Only elements that do not have the `hidden` attribute are selectable, but the
 elements that are just visually hidden are still selectable.
 
 ### Labels
 
-The label is a readable text that is associated with the element. This is a
-partial match (the specified label ony needs to be contained in the on-screen
-label) but it's always case-sensitive. In the form fields' case, the label is
+The label is a readable text that is associated with the element. This can 
+be either an exact match (default) or a partial match with prefixes (see 
+below) but it's always case-sensitive. In the form fields' case, the label is
 either the text content of a `<label>` element whose `for` attribute points to
 the input, or the text content of a `<label>` element that encloses the 
-input, or the field value.
+input, or the field value. The elements' `aria-label` and `aria-labelledby` 
+are also considered when making a match. The text found in the element is always
+trimmed (initial and final whitespace removed) and any internal whitespace 
+is collapsed into single blanks.
+
+Labels can have two-character prefixes similar to attribute selectors in CSS.
+The prefixes are as follows:
+
+- `^=` - Match at the start
+- `$=` - Match at the end
+- `*=` - Match anywhere inside the label
+
+There is no prefix for exact match as that is the default.
+
+If a regular expression is passed as the label text, then the candidate label 
+text is matched against it.
 
 Only elements that do not have the `hidden` attribute are selectable, but the
 elements that are just visually hidden are still selectable.
