@@ -83,13 +83,16 @@ Excerpt from the tests:
 - [x] Ability to run multiple tests suits consecutively
 - [ ] Add test examples that demonstrate and verify the PokeAtUI functionality
 - [x] Allow interaction with general areas
-- [ ] Allow interaction with more element types (lists, links, etc)
+- [x] Add supports for links
+- [ ] Add support for headers
+- [ ] Add support for tables
+- [ ] Add support for ordered and unordered lists
 - [ ] Handle elements that are visually hidden or have `pointer-events: none`
 - [x] Touch support
 - [ ] Touch gesture support (pinch, twist, swipe)
 - [ ] Mocking HTTP
 - [ ] Storage fixtures
-- [ ] Ability to transition between pages
+- [x] Ability to transition between pages
 - [ ] (OPTIONAL) Support for headless environment (e.g., in CI)
 
 ## Installing
@@ -148,10 +151,8 @@ The first argument is the URL. Usually this is a path to the application
 HTML. You can deploy tests to the same server and run the tests in any  
 environment.
 
-If
-you [disable cross origin checks](https://stackoverflow.com/questions/3102819/disable-same-origin-policy-in-chrome)
-in your browser, you point the function to any URL, like, say, the dev server's
-URL.
+If disable CORS checks (see the Disabling CORS section) in your browser, you 
+point the function to any URL, like, say, the dev server's URL.
 
 ```javascript
 // my-test.js
@@ -195,6 +196,12 @@ environment passed via a query string parameter:
 If you open your `test.html` with the appropriate query string parameter,
 like `test.html?env=dev`, the test loads the appropriate URL based on the
 configuration specified in `TEST_URLS`.
+
+The recommended way to open the test file is using an HTTP server. Opening 
+the HTML file straight in the browser will not work because browsers treat 
+`file://` URLs as restricted, and will not allow the test runner to access 
+the page in the frame. Page previews in your editor or IDE may do this for 
+you (e.g., JetBrains IDEs spin up their own server).
 
 ### Test runner options
 
@@ -323,6 +330,26 @@ methods for performing various actions and making assertions.
 The following methods are available:
 
 ### Page actions
+
+#### `afterPageLoad(cb)`
+
+Invokes the callback after the page loads. This is not necessary for the 
+initial page load, but is needed after user actions that cause navigation 
+(e.g., clicking links).
+
+Example:
+
+```javascript
+testDocument('index.html')
+  .useCase('Navigate to about page', (ui, done) => {
+    ui.clickElement('link', 'About')
+    ui.afterPageLoad(checkHeading)
+    function checkHeading() {
+      ui.hasMatchingElements('*', 'About Us')
+      done()
+    }
+  })
+```
 
 #### `refresh(cb)`
 
@@ -565,6 +592,86 @@ testDocument('index.html')
   })
 ```
 
+### Making assertions about location
+
+#### `isAtPath(path)`
+
+Checks that the location's path matches the specified one. Exceptions is 
+thrown otherwise.
+
+The path matching follows the same rules as label matching, supporting the 
+prefixes and regular expressions. See the Labels section for more details.
+
+The `$=` prefix is especially useful when the test page may be hosted under 
+different paths, but the relative relationship between internal paths of the 
+application are always the same.
+
+This method only checks the path (`location.pathname`), and ignores any 
+fragment identifiers (`locationb.hash`) and query parameters 
+(`location.search`).
+
+If this method is called after navigating, you must wait for the page to load
+before the assertion can pass.
+
+Example:
+
+```javascript
+testDocument('index.html')
+  .useCase('Navigate to about page', (ui, done) => {
+    ui.clickElement('link', 'About')
+    ui.afterPageLoad(checkPath)
+    function checkPath() {
+      ui.isAtPath('$=/about.html') // the full path may be /public/about.html
+      done()
+    }
+  })
+```
+
+#### `isAtFragment(fragment)`
+
+Checks that the location has the specified fragment identifier (hash). The 
+parameter is the hash with the leading hash character `#`. We can also use 
+an empty string to check that there is no hash.
+
+Example:
+
+```javascript
+testDocument('index.html')
+  .useCase('Navigate to about section', (ui, done) => {
+    ui.clickElement('link', 'About')
+    ui.isAtFragment('#about') // actual URL may be /index.html#about
+  })
+```
+
+#### `hasQueryParam(key, value)`
+
+Checks that a query string parameter contains a key-value pair. The value is 
+the URL-decoded (unescaped) value. Any number of values can be specified 
+following the key.
+
+This method only tests one value. If the same parameter is repeated multiple 
+times in the URL, then multiple calls to this method are required to test 
+for all of them.
+
+Example:
+
+```javascript
+testDocument('index.html')
+  .useCase('Search', (ui, done) => {
+    ui.clickElement('form field', 'Search')
+    ui.typeIntoFocusedField('my keyword', submit)
+    function submit() {
+      ui.clickElement('button', 'Go')
+      ui.afterPageLoad(checkQuery)
+    }
+    function checkQuery() {
+      ui.hasQueryParam('q', 'my keyword')
+      done()
+    }
+  })
+```
+
+
 ### Making assertions about the UI
 
 #### `expectLabelChange(elementType, label) => function (label)`
@@ -771,6 +878,36 @@ Only elements that do not have the `hidden` attribute are selectable, but the
 elements that are just visually hidden are still selectable.
 
 Visually hidden labels are also considered when testing the label text.
+
+## Common issues
+
+Here are some common issues that you may run into.
+
+### Disabling CORS
+
+Sometimes CORS can interfere with the execution of your tests. This section 
+describes how to disable CORS so that the instructions are not repeated 
+multiple times.
+
+In Chrome, start with `--disable-web-security` flag. In Firefox, this is not 
+possible. In Safari, this can be done from the developer menu by using the 
+"Disable Cross-Origin Restrictions" item.
+
+### Uncaught DOMException: Blocked a frame with origin "null"
+
+This happens if the test page is opened using a browser without using a HTTP 
+server (`file://` URLs). Local URLs are disallowed due to CORS restrictions. 
+You can work around this either by disabling CORS or use a http server. 
+
+A simple static file server like [Nginx](https://www.nginx.com/) or 
+[http-server](https://www.npmjs.com/package/http-server) will work fine. 
+For example the following command will start a CORS-enabled static file 
+server that will serve the contents of the current folder, which works great 
+for local development:
+
+```bash
+npx http-server --cors .
+```
 
 ## License
 

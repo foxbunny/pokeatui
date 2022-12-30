@@ -4,6 +4,7 @@
   let
     HAS_TOUCH = 'ontouchstart' in document.documentElement,
     HAS_DRAG = 'ondragover' in document.documentElement,
+    DO_NOTHING = () => {},
     /**
      * Create a test suite for a given URL
      *
@@ -73,7 +74,7 @@
           $frame.remove()
           $tools.remove()
         }
-        : () => {}
+        : DO_NOTHING
 
       // Enable and instrument the tools and the iframe
       Object.assign($frame, { width, height })
@@ -221,8 +222,17 @@
           init.cancelable = !NON_CANCELABLE_EVENTS.includes(type)
 
           ev = new EventCtor(type, init)
+
+          // These events require the methods to be called, but do not dispatch
+          // events, so we still need to dispatch the event later.
           if (type === 'focus') $.focus()
-          $.dispatchEvent(ev)
+          if (type === 'blur') $.focus()
+
+          // For click event, calling Element.click() will dispatch the event,
+          // so we don't need to dispatch it separately.
+          if (type === 'click') $.click()
+          else $.dispatchEvent(ev)
+
           return ev
         },
         dispatchEventChain = ($, events) => {
@@ -259,27 +269,28 @@
           ])
           dispatchEvent($, 'blur')
         },
-        cleanText = text => text?.replace(/\s+/g, ' ').trim(),
-        startMatcher = text => otherText => cleanText(otherText)?.startsWith(text),
-        endMatcher = text => otherText => cleanText(otherText)?.endsWith(text),
-        containsMatcher = text => otherText => cleanText(otherText)?.includes(text),
-        identityMatcher = text => otherText => cleanText(otherText) === text,
-        patternMatcher = pattern => {
+        collapseWhitespace = text => text?.replace(/\s+/g, ' ').trim(),
+        dummyCleaner = text => text,
+        startMatcher = (text, cleaner) => otherText => cleaner(otherText)?.startsWith(text),
+        endMatcher = (text, cleaner) => otherText => cleaner(otherText)?.endsWith(text),
+        containsMatcher = (text, cleaner) => otherText => cleaner(otherText)?.includes(text),
+        identityMatcher = (text, cleaner) => otherText => cleaner(otherText) === text,
+        patternMatcher = (pattern, cleaner) => {
           if (typeof pattern === 'string') pattern = new RegExp(pattern)
-          return otherText => pattern.test(cleanText(otherText))
+          return otherText => pattern.test(cleaner(otherText))
         },
-        createMatcher = text => {
-          if (text instanceof RegExp) return patternMatcher(text)
+        createMatcher = (text, cleaner = collapseWhitespace) => {
+          if (text instanceof RegExp) return patternMatcher(text, cleaner)
 
           switch (text.slice(0, 2)) {
             case '^=':
-              return startMatcher(text.slice(2))
+              return startMatcher(text.slice(2), cleaner)
             case '$=':
-              return endMatcher(text.slice(2))
+              return endMatcher(text.slice(2), cleaner)
             case '*=':
-              return containsMatcher(text.slice(2))
+              return containsMatcher(text.slice(2), cleaner)
             default:
-              return identityMatcher(text)
+              return identityMatcher(text, cleaner)
           }
         },
         labelMatches = ($, matcher) => {
@@ -312,6 +323,10 @@
           switch (elementType) {
             case 'button':
               for (let $ of $frame.contentDocument.querySelectorAll(`:is(button,[role=button]):not([hidden])`))
+                if (labelMatches($, matcher)) yield $
+              break
+            case 'link':
+              for (let $ of $frame.contentDocument.querySelectorAll('a[href]:not([hidden])'))
                 if (labelMatches($, matcher)) yield $
               break
             case 'form field':
@@ -393,12 +408,15 @@
           setTimeout: $frame.contentWindow.setTimeout.bind($frame.contentWindow),
           requestAnimationFrame: $frame.contentWindow.requestAnimationFrame.bind($frame.contentWindow),
           // Page interactions
-          refresh(cb) {
-            $frame.contentWindow.location.reload()
+          afterPageLoad(cb) {
             $frame.onload = () => {
-              delete $frame.onload
+              $frame.onload = DO_NOTHING
               cb()
             }
+          },
+          refresh(cb) {
+            $frame.contentWindow.location.reload()
+            this.afterPageLoad(cb)
           },
           scrollToTop() {
             $frame.contentWindow.scrollTo(0, 0)
@@ -725,7 +743,10 @@
               let chr = chars.shift()
               $.value += chr
               keyPress($, CODES[chr] || { key: chr, shiftKey: false })
-              dispatchEvent($, 'input')
+              dispatchEventChain($, [
+                ['beforeinput'],
+                ['input'],
+              ])
               this.setTimeout(typeNextChar, minTypingDelay + Math.random() * 50)
             }())
           },
@@ -745,6 +766,21 @@
               if (!labelMatches($, matcher))
                 throw Error(`Label of the ${elementType} element was expected to change from "${label}" to "${newLabel}", but it did not`)
             }
+          },
+          // Assert page state
+          isAtPath(path) {
+            let match = createMatcher(path, dummyCleaner)
+            if (!match($frame.contentWindow.location.pathname))
+              throw Error(`Expected to be at path "${path}", but is on "${$frame.contentWindow.location.pathname}`)
+          },
+          isAtFragment(fragment) {
+            if ($frame.contentWindow.location.hash !== fragment)
+              throw Error(`Expected to be at fragment "${fragment}", but is on "${$frame.contentWindow.location.hash}"`)
+          },
+          hasQueryParam(key, value) {
+            let queryVals = new URLSearchParams($frame.contentWindow.location.search).getAll(key)
+            if (!queryVals.includes(value))
+              throw Error(`Expected query param "${key}" to have value "${value}", but it was not in [${queryVals.join(', ')}]`)
           },
           // Assert element count
           noElementsMatch(elementType, label) {
@@ -858,13 +894,14 @@
             // Reset the frame contents by completely unloading it
             $frame.src = ''
             $frame.onload = () => {
+              $frame.onload = DO_NOTHING
               // Load the test page again, and clean up storage if needed
               if (clearStorageBetweenTests) $frame.contentWindow.localStorage.clear()
               $frame.src = url
               $frame.onload = () => {
                 // Remove the onload event listener so it is not invoked again
                 // (e.g., by test code requesting a reload)
-                delete $frame.onload
+                $frame.onload = DO_NOTHING
                 // Test will fail automatically on exceptions within the page.
                 $frame.contentWindow.onerror = failCurrentTest
                 uiTools.setTimeout(() => {

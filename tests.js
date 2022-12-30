@@ -180,6 +180,30 @@
             done()
           }
         })
+        .run(testLinks),
+    testLinks = () =>
+      testDocument('test-pages/links.html', { clearOnFinish: true })
+        .useCase('Visit a link', (ui, done) => {
+          ui.clickElement('link', 'Matching')
+          ui.afterPageLoad(checkUrl)
+          function checkUrl() {
+            ui.isAtPath('$=test-pages/matching.html')
+            done()
+          }
+        })
+        .useCase('Visit a link with query param', (ui, done) => {
+          ui.clickElement('link', 'Test param')
+          ui.afterPageLoad(checkUrl)
+          function checkUrl() {
+            ui.hasQueryParam('test', 'me')
+            done()
+          }
+        })
+        .useCase('Visit a fragment identifier', (ui, done) => {
+          ui.clickElement('link', 'Section')
+          ui.isAtFragment('#section')
+          done()
+        })
         .run()
 
   testMatching()
