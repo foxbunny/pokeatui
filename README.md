@@ -80,7 +80,7 @@ Excerpt from the tests:
 - [x] Add auto-scroll to drag & drop action
 - [ ] ~~Allow interaction with label-less elements~~
 - [ ] ~~Add support for performing actions based on coordinates (e.g., clicking)~~
-- [ ] Ability to run multiple tests suits consecutively
+- [x] Ability to run multiple tests suits consecutively
 - [ ] Add test examples that demonstrate and verify the PokeAtUI functionality
 - [x] Allow interaction with general areas
 - [ ] Allow interaction with more element types (lists, links, etc)
