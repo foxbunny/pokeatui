@@ -141,6 +141,14 @@
             done()
           }
         })
+        .useCase('Miss the drop target', (ui, done) => {
+          ui.grabElement('*', 'Drag me')
+          ui.dragGrabbedElementOver('*', "Don't drop here", thenCheck)
+          function thenCheck() {
+            ui.countElementsWithLabel('*', 'You missed it', 1)
+            done()
+          }
+        })
         .run()
 
   testMatching()

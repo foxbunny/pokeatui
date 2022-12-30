@@ -5,7 +5,8 @@
     <title>Drag & Drop</title>
     <style>
       #draggable,
-      #drop-target {
+      #drop-target,
+      #beyond-drop {
         padding: 1em;
         background: silver;
         margin: 1em 0;
@@ -14,11 +15,16 @@
       #draggable[data-dragging] {
         background: yellow;
       }
+
+      #drop-target[data-dragging] {
+        background: green;
+      }
     </style>
   </head>
   <body>
     <div id="draggable" draggable="true">Drag me</div>
     <div id="drop-target">Drop here</div>
+    <div id="beyond-drop">Don't drop here</div>
 
     <script type="text/javascript">
       let
@@ -34,15 +40,18 @@
       $dropTarget.ondragenter = ev => {
         ev.preventDefault()
         $dropTarget.textContent = 'Drop it now'
+        $dropTarget.dataset.dragging = true
       }
       $dropTarget.ondragleave = ev => {
         ev.preventDefault()
-        $dropTarget.textContent = 'Drop here'
+        $dropTarget.textContent = 'You missed it'
+        delete $dropTarget.dataset.dragging
       }
       $dropTarget.ondragend = ev => {
         ev.preventDefault()
         $dropTarget.textContent = 'There you go!'
         delete $draggable.dataset.dragging
+        delete $dropTarget.dataset.dragging
       }
     </script>
   </body>
