@@ -634,9 +634,8 @@ Checks that there are exactly `count` elements that match the type-label
 combination. Throws if there are less or more matching elements. (See
 Element types and Labels sections.)
 
-This method cannot use `0` as the count. To check that there are no elements,
-use the `noElementsMatch()` method instead. This is done to improve the
-clarity of the intent as well as to keep the code simpler under the hood.
+This method should only be used when the specific number of elements matter. 
+Otherwise use either `noElementsMatch()` or `hasMatchingElements()`.
 
 Example:
 
