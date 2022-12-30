@@ -567,6 +567,28 @@ testDocument('index.html')
 
 ### Making assertions about the UI
 
+#### `expectLabelChange(elementType, label) => function (label)`
+
+Checks that element's label has changed. Throws an exception when the label 
+passed to the callback does not match the element matching the initially 
+specified element type and label. (See Element types and Labels sections.)
+
+This is a two-step assertion where the first step is to acquire an element 
+that we wish to monitor for changes. The second step is to assert the change.
+
+Example:
+
+```javascript
+testDocument('index.html')
+  .useCase('Delete multiple nodes', (ui, done) => {
+    let checkChange = ui.expectLabelChange('*', '0 tasks')
+    ui.clickElement('button', 'Add a node')
+    ui.clickElement('button', 'Add a node')
+    checkChange('2 tasks')
+    done()
+  })
+```
+
 #### `noElementsMatch(elementType, label)`
 
 Checks that no element matches the type-label combination. Throws an exception

@@ -737,6 +737,15 @@
             $.value += text
             dispatchEvent($, 'input')
           },
+          // Assert element state
+          expectLabelChange(elementType, label, position = 1) {
+            let $ = getElementByLabel(elementType, label, position)
+            return newLabel => {
+              let matcher = createMatcher(newLabel)
+              if (!labelMatches($, matcher))
+                throw Error(`Label of the ${elementType} element was expected to change from "${label}" to "${newLabel}", but it did not`)
+            }
+          },
           // Assert element count
           noElementsMatch(elementType, label) {
             // Check that there are no elements that match the element type and
