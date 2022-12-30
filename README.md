@@ -608,6 +608,26 @@ testDocument('index.html')
   })
 ```
 
+#### `hasMatchingElements(elementType, label)`
+
+Checks that there is at least one element matches the type-label combination.
+Throws if there are no matching elements. (See Element types and Labels 
+sections.)
+
+This should be used only when the specific number of elements does not 
+matter. Otherwise, you should use `countMatchingElements()`.
+
+Example:
+
+```javascript
+testDocument('index.html')
+  .useCase('Add multiple nodes', (ui, done) => {
+    ui.clickElement('button', 'Add a node')
+    ui.hasElementsWithLabel('button', 'Delete node')
+    done()
+  })
+```
+
 #### `countMatchingElements(elementType, label, count)`
 
 Checks that there are exactly `count` elements that match the type-label

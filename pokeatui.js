@@ -753,7 +753,11 @@
             if (!generateElementsByLabel(elementType, label).next().done)
               throw Error(`Expected no elements of ${elementType} with label "${label}" but got at least one`)
           },
-          countElementsWithLabel(elementType, label, count) {
+          hasMatchingElements(elementType, label) {
+            if (generateElementsByLabel(elementType, label).next().done)
+              throw Error(`Expected at least one element of ${elementType} with label "${label}" but got none`)
+          },
+          countMatchingElements(elementType, label, count) {
             // Check that there is a specified number of elements that match the
             // element type and label.
             let $$elms = getElementsByLabel(elementType, label)
