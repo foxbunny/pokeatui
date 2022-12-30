@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Refresh</title>
+  </head>
+  <body>
+    <p>This page has been refreshed <span id="count">0</span> times</p>
+
+    <script>
+      let count = localStorage.refreshCount = Number(localStorage.refreshCount ?? -1) + 1
+      document.getElementById('count').textContent = count
+    </script>
+  </body>
+</html>

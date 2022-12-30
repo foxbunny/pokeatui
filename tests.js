@@ -149,6 +149,30 @@
             done()
           }
         })
+        .run(testRefresh),
+    testRefresh = () =>
+      testDocument('test-pages/refresh.html', { clearOnFinish: true })
+        .useCase('Initial state', (ui, done) => {
+          ui.countElementsWithLabel('*', '*=refreshed 0 times', 3)
+          done()
+        })
+        .useCase('Refresh once', (ui, done) => {
+          ui.refresh(thenCheck)
+          function thenCheck() {
+            ui.countElementsWithLabel('*', '*=refreshed 1 times', 3)
+            done()
+          }
+        })
+        .useCase('Refresh twice', (ui, done) => {
+          ui.refresh(thenRefreshAgain)
+          function thenRefreshAgain() {
+            ui.refresh(thenCheck)
+          }
+          function thenCheck() {
+            ui.countElementsWithLabel('*', '*=refreshed 2 times', 3)
+            done()
+          }
+        })
         .run()
 
   testMatching()
