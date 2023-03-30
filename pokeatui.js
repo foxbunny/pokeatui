@@ -481,12 +481,9 @@
 
             // Some special cases where clicking also changes the value
             if ($.tagName === 'INPUT' && $.type === 'checkbox') {
-              $.checked = !$.checked
-              $.indeterminate = false
               dispatchEvent($, 'change')
             }
             if ($.tagName === 'INPUT' && $.type === 'radio' && !$.checked) {
-              $.checked = true
               dispatchEvent($, 'change')
             }
           },
@@ -812,7 +809,9 @@
           fieldShouldHaveValue(label, value, position = 1) {
             // Check that the a form field element with specified label has
             // the specified value.
-            let $ = getElementByLabel('form field', label, position)
+            let
+              $ = getElementByLabel('form field', label, position),
+              actual = $.value
             switch ($.type) {
               case 'checkbox':
               case 'radio':
@@ -820,13 +819,14 @@
                 if (value === 'checked' && $.checked) return
                 if (value === 'unchecked' && !$.checked) return
                 if (value === 'indeterminate' && $.indeterminate) return
+                actual = `${$.checked ? 'checked' : 'not checked'} and ${$.indeterminate ? 'indeterminate' : 'not indeterminate'}`
                 break
               default:
                 // For all other inputs, we are looking for a value match
                 let matcher = createMatcher(value)
                 if (matcher($.value)) return
             }
-            throw Error(`Expected form field with label "${label}" to have value "${value}", but instead it has "${$.value}"`)
+            throw Error(`Expected form field with label "${label}" to have value "${value}", but instead it has "${actual}"`)
           },
         }
 

@@ -119,6 +119,16 @@
           ui.countMatchingElements('*', 'You typed some text', 1)
           done()
         })
+        .run(testCheckbox),
+    testCheckbox = () =>
+      testDocument('test-pages/checkbox.html', { clearOnFinish: true })
+        .useCase('Toggle checkbox', (ui, done) => {
+          ui.clickElement('form field', 'My checkbox')
+          ui.fieldShouldHaveValue('My checkbox', 'checked')
+          ui.clickElement('form field', 'My checkbox')
+          ui.fieldShouldHaveValue('My checkbox', 'unchecked')
+          done()
+        })
         .run(testDragDrop),
     testDragDrop = () =>
       testDocument('test-pages/drag-drop.html', { clearOnFinish: true })

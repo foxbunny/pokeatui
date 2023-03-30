@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Input</title>
+  </head>
+  <body>
+    <label>
+      My checkbox
+      <input id="checkbox" type="checkbox">
+    </label>
+    <p id="output"></p>
+
+    <script type="text/javascript">
+      let
+        $input = document.getElementById('checkbox'),
+        $output = document.getElementById('output')
+
+      $input.onchange = () => {
+        $output.textContent = 'You ' + ($output.checked ? 'checked' : 'unchecked') + ' it'
+      }
+    </script>
+  </body>
+</html>
